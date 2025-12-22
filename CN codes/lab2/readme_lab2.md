@@ -4,7 +4,7 @@
 ## Overview
 This project implements a hybrid network topology with 25 nodes using Scilab, combining three basic topologies (Ring, Star, and Bus). The implementation includes visualization, node/edge numbering, coloring, network analysis, and failure scenario analysis.
 
-## Part 1: Hybrid Topology Creation and Analysis
+## Part 1: Hybrid Topology Creation and Analysis 
 
 ### Topology Design
 The hybrid topology consists of:
