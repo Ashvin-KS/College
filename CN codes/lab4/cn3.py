@@ -7,7 +7,7 @@ print(f"Total Number of packets: {total_packets}")
 src_ips = set()
 dst_ips = set()
 protocols = []
-for pkt in pkts:
+for pkt in pkts: 
     if IP in pkt:
         src_ips.add(pkt[IP].src)
         dst_ips.add(pkt[IP].dst)
