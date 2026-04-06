@@ -1,0 +1,325 @@
+Computer Networks Assignment
+Performance Analysis of Routing Algorithms
+Submitted By:
+Name: Ashvin K S
+Roll Number: 24bce1580
+Slot: F1
+Table of Contents
+1. Question 1: Dijkstra vs Floyd-Warshall Performance Comparison
+2. Question 2: Congestion Analysis with ARC Algorithm
+3. Question 3: Cross-Topology Complexity Analysis
+
+Question 1: Dijkstra vs Floyd-Warshall Performance
+Comparison
+Objective
+To compare the performance of Dijkstra's algorithm (1-to-All) with Floyd-Warshall algorithm (All-
+Pairs) across varying network sizes.
+Scilab Code
+// Clear workspace and console
+clc;
+clear;
+// -----------------------------------------------------
+// 1. Simulation Parameters
+// -----------------------------------------------------
+L = 1000;               // Area dimension
+dmax = 100;             // Maximum transmission/connection distance
+node_counts = 5:5:100;  // Array of node counts to simulate
+num_steps = length(node_counts);
+// Preallocate arrays for better performance
+nodes = zeros(1, num_steps);
+avgDijkstra = zeros(1, num_steps);
+avgFloyd = zeros(1, num_steps);
+k = 1;
+for n = node_counts
+nodes(k) = n;
+// Generate network topology
+g = NL_T_LocalityConnex(n, L, dmax);
+// -----------------------------------------------------
+// 2. Evaluate Dijkstra's Algorithm (1-to-All)
+// -----------------------------------------------------
+tD = zeros(1, n); // Preallocate array for individual Dijkstra times
+for src = 1:n
+tic(); // Start stopwatch (more accurate than timer())
+[distD, predD] = NL_R_Dijkstra(g, src);
+tD(src) = toc(); // Stop stopwatch
+
+end
+// Calculate the average time it takes Dijkstra for a single source node
+avgDijkstra(k) = mean(tD); 
+// -----------------------------------------------------
+// 3. Evaluate Floyd-Warshall Algorithm (All-Pairs)
+// -----------------------------------------------------
+tic(); // Start stopwatch
+[distF, predF] = NL_R_FloydWarshall(g);
+avgFloyd(k) = toc(); // Stop stopwatch
+// Print formatted progress to the console
+mprintf("Nodes: %3d | Avg Dijkstra (per node): %f s | Floyd (All-Pairs):
+%f s\n", ...
+n, avgDijkstra(k), avgFloyd(k));
+// Store the final graph dynamically (using the max value of our sequence)
+if n == max(node_counts) then
+finalGraph = g;
+end
+k = k + 1;
+end
+// -----------------------------------------------------
+// 4. Visualization
+// -----------------------------------------------------
+// Figure 1: Final Network Topology
+scf(1);
+clf();
+NL_G_ShowGraphN(finalGraph, 1);
+xtitle("Final Network Topology (100 Nodes)");
+// Figure 2: Performance Comparison
+scf(2);
+clf();
+plot(nodes, avgDijkstra, '-bo'); // Blue line with circle markers
+plot(nodes, avgFloyd, '-rs');    // Red line with square markers
+// Add a grid for better data readability
+xgrid(); 
+// Ensure legend is placed where it doesn't block the data (upper left usually
+works well for O(n^3) curves)
+
+Performance Data Table
+NodesAvg Dijkstra Time (s)Floyd-Warshall Time (s)Ratio (Floyd/Dijkstra)
+5 0.000143 0.000381 2.66
+10 0.000199 0.000091 0.46
+15 0.000249 0.000094 0.38
+20 0.000258 0.000161 0.62
+25 0.000359 0.000295 0.82
+30 0.000417 0.000302 0.72
+35 0.000744 0.000856 1.15
+40 0.000617 0.000840 1.36
+45 0.000829 0.001261 1.52
+50 0.001671 0.008502 5.09
+55 0.001808 0.012741 7.05
+60 0.001528 0.006852 4.48
+65 0.001724 0.010553 6.12
+70 0.000787 0.001879 2.39
+75 0.006184 0.147610 23.87
+80 0.001223 0.004367 3.57
+85 0.003053 0.051683 16.93
+90 0.001605 0.004485 2.79
+95 0.002327 0.015036 6.46
+100 0.003346 0.033593 10.04
+Graphs and Visualizations
+legend(["Dijkstra (Avg 1-to-All Time)"; "Floyd–Warshall (All-Pairs Time)"],
+"in_upper_left");
+xtitle("Routing Time vs Number of Nodes", ...
+"Number of Nodes", ...
+"Time (seconds)");
+
+
+
+
+
+
+
+Question 2: Congestion Analysis with ARC Algorithm
+Objective
+To analyze network congestion using the ARC (Adaptive Rate Control) algorithm, comparing
+processing times between 200 and 300 node networks. The experiment includes a fallback
+mechanism to Floyd-Warshall when ARC is unavailable.
+Scilab Code
+// =====================================================
+// ENVIRONMENT SETUP
+// =====================================================
+clc;
+clear;
+L = 1000;                 // Side length of the simulation area
+dmax = 120;               // Maximum connectivity radius for node links
+node_counts = [200, 300]; // Specific data points for analysis
+num_steps = length(node_counts);
+// Reserve space for the execution time results
+time_Execution = zeros(1, num_steps);
+mprintf("--- Starting Code 2: Congestion Analysis ---\n");
+// =====================================================
+// TOPOLOGY GENERATION & ALGORITHM EXECUTION
+// =====================================================
+for i = 1:num_steps
+n = node_counts(i);
+// Construct the baseline network topology
+g = NL_T_LocalityConnex(n, L, dmax);
+// Visualization of the network
+scf(i);
+clf();
+NL_G_ShowGraphN(g, i);
+xtitle(msprintf("Analysis Topology: %d Nodes", n));
+// -------------------------------------------------
+// EXECUTION BLOCK (WITH FALLBACK)
+// -------------------------------------------------
+
+Console Output
+tic();
+try
+// Attempt to run the ARC Congestion Control algorithm
+cong = NL_C_ARC(g);
+time_Execution(i) = toc();
+mprintf("Iteration %d | Nodes: %d | ARC Processing Time: %f s\n", i,
+n, time_Execution(i));
+catch
+// FALLBACK: If NL_C_ARC is missing, the script won't crash.
+// It runs Floyd-Warshall instead so your graphs still generate!
+if i == 1 then
+mprintf("\n[!] WARNING: NL_C_ARC function not found on your
+computer.\n");
+mprintf("[!] Running Floyd-Warshall as a fallback to ensure script
+completes.\n\n");
+end
+[dist, pred] = NL_R_FloydWarshall(g);
+time_Execution(i) = toc();
+mprintf("Iteration %d | Nodes: %d | Fallback Processing Time: %f s\n",
+i, n, time_Execution(i));
+end
+end
+// =====================================================
+// FINAL SCALABILITY PLOT
+// =====================================================
+scf(num_steps + 1);
+clf();
+plot(node_counts, time_Execution, '-mo'); // Magenta line with circle markers
+xgrid();
+xtitle("Algorithm Computational Overhead (ARC or Fallback)", ...
+"Network Density (Nodes)", ...
+"Time Consumption (seconds)");
+mprintf("\n--- Code 2 Execution Complete! ---\n");
+--- Starting Code 2: Congestion Analysis ---
+
+Performance Data Analysis
+Node CountProcessing Time (s)Time Increase FactorNotes
+200 35.87 - Fallback (Floyd-Warshall)
+300 137.90 3.84x Fallback (Floyd-Warshall)
+Graphs and Visualizations
+[!] WARNING: NL_C_ARC function not found on your computer.
+[!] Running Floyd-Warshall as a fallback to ensure script completes.
+Iteration 1 | Nodes: 200 | Fallback Processing Time: 35.866101 s
+Iteration 2 | Nodes: 300 | Fallback Processing Time: 137.895356 s
+--- Code 2 Execution Complete! ---
+
+
+
+
+
+Question 3: Cross-Topology Complexity Analysis
+Objective
+To analyze the performance of Floyd-Warshall algorithm across different network topology
+models:
+Scilab Code
+Part A: Scale performance from 200 to 300 nodes on locality-based graphs
+Part B: Compare routing latency across 5 different topology generation methods (Locality,
+Barabasi-Albert, Waxman, AddWaxman2Node, Grid)
+// =====================================================
+// GLOBAL CONFIGURATION
+// =====================================================
+clc;
+clear;
+L = 1000;        // Simulation field dimension
+fig_tracker = 1; // Counter to manage multiple graphic windows
+// -----------------------------------------------------
+// PART A: PERFORMANCE SCALING (200 VS 300 NODES)
+// -----------------------------------------------------
+nodesA = [200, 300];
+timeA = zeros(1, 2);
+for i = 1:2
+n = nodesA(i);
+// Create a locality-based connected graph
+g = NL_T_LocalityConnex(n, L, 100);
+// Display individual topology plots
+scf(fig_tracker);
+clf();
+NL_G_ShowGraphN(g, fig_tracker);
+xtitle(msprintf("Reference Locality Graph (%d Nodes)", n));
+fig_tracker = fig_tracker + 1;
+// Measure All-Pairs Shortest Path calculation time
+tic();
+[dist, pred] = NL_R_FloydWarshall(g);
+timeA(i) = toc();
+
+mprintf("Section A | Size: %3d | Processing Time: %f seconds\n", n,
+timeA(i));
+end
+// Plot the comparative time for Part A
+scf(fig_tracker);
+clf();
+plot(nodesA, timeA, '-mo');
+xgrid();
+xtitle("Floyd-Warshall Time Requirement: 200 vs 300 Nodes");
+fig_tracker = fig_tracker + 1;
+// -----------------------------------------------------
+// PART B: CROSS-TOPOLOGY COMPLEXITY ANALYSIS
+// -----------------------------------------------------
+// Set to [50 100 200] for correct left-to-right plotting
+nodeLevels = [50, 100, 200];
+numB = length(nodeLevels);
+// Pre-allocate storage for each of the 5 generation methods
+t_Locality = zeros(1, numB);
+t_Barabasi = zeros(1, numB);
+t_Waxman   = zeros(1, numB);
+t_AddWaxman = zeros(1, numB);
+t_Grid     = zeros(1, numB);
+mprintf("\n--- Commencing Multi-Model Topology Benchmarking ---\n");
+for i = 1:numB
+n = nodeLevels(i);
+// 1. Locality Model
+g1 = NL_T_LocalityConnex(n, L, 100);
+tic(); [d1,p1] = NL_R_FloydWarshall(g1); t_Locality(i) = toc();
+// 2. Scale-Free Model (Barabasi-Albert)
+[g2,d] = NL_T_BarabasiAlbert(n, 5, L);
+tic(); [d2,p2] = NL_R_FloydWarshall(g2); t_Barabasi(i) = toc();
+// 3. Random Network Model (Waxman)
+// Uses 4 inputs (alpha=0.4, beta=0.4, n, L)
+[g3, degre3] = NL_T_Waxman(0.4, 0.4, n, L);
+tic(); [d3,p3] = NL_R_FloydWarshall(g3); t_Waxman(i) = toc();
+// 4. Enhanced Waxman Model (Modifying an existing graph)
+
+Console Output
+Part A - Performance Scaling:
+Part B - Multi-Model Benchmarking:
+// Uses 6 inputs -> (alpha, beta, N, L, existing_graph, target_node)
+// We pass 'g3' as the base graph, and modify node 'n'
+g4 = NL_T_AddWaxman2Node(0.4, 0.4, n, L, g3, n);
+tic(); [d4,p4] = NL_R_FloydWarshall(g4); t_AddWaxman(i) = toc();
+// 5. Deterministic Mesh (Grid)
+r = round(sqrt(n)); c = ceil(n/r);
+g5 = NL_T_Grid(r, c, L);
+tic(); [d5,p5] = NL_R_FloydWarshall(g5); t_Grid(i) = toc();
+mprintf("Section B | Successfully analyzed all models for %3d nodes\n",
+n);
+end
+// =====================================================
+// FINAL COMPARATIVE VISUALIZATION
+// =====================================================
+scf(fig_tracker);
+clf();
+// Plotting with distinct colors and shapes for high readability
+plot(nodeLevels, t_Locality, '-ro');  // Red + Circle
+plot(nodeLevels, t_Barabasi, '-g*');  // Green + Star
+plot(nodeLevels, t_Waxman,   '-bs');  // Blue + Square
+plot(nodeLevels, t_AddWaxman, '-m^'); // Magenta + Triangle
+plot(nodeLevels, t_Grid,     '-kd');  // Black + Diamond
+xgrid();
+legend(["Locality"; "Barabasi-Albert"; "Waxman"; "AddWaxman2Node"; "Grid"],
+"in_upper_left");
+xtitle("Routing Latency across Different Graph Topologies", ...
+"Network Size (Nodes)", ...
+"Computational Time (seconds)");
+--- Commencing Multi-Model Topology Benchmarking ---
+Section B | Successfully analyzed all models for  50 nodes
+
+Performance Data Analysis
+Part A: Scaling from 200 to 300 Nodes
+Node CountProcessing Time (s)Time Increase Factor
+200 28.578491 -
+300 98.607092 3.45x
+Part B: Topology Comparison at Different Node Counts
+Topology 50 Nodes (s)100 Nodes (s)200 Nodes (s)
+Locality 0.0056 ~0.02 ~0.16
+Barabasi-Albert 0.366 ~1.5 ~12
+Waxman 0.377 ~1.5 ~12
+AddWaxman2NodeVariable Variable Variable
+Grid Variable Variable Variable
+Variable Browser Output
+Section B | Successfully analyzed all models for 100 nodes
+Section B | Successfully analyzed all models for 200 nodes
+
+Graphs and Visualizations
