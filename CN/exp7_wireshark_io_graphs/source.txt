@@ -1,0 +1,292 @@
+Student  Name:  Ks  Ashvin  
+Registration  Number:  24bce1580  
+Capture  File:  24bce1580.pcap  
+ 
+1.  Wireshark  I/O  Graphs  and  Inferences  
+The  following  five  graphs  were  generated  using  the  Wireshark  I/O  Graphs  menu  to  visualize  
+packet
+ 
+capture
+ 
+details
+ 
+over
+ 
+a
+ 
+500
+ 
+ms
+ 
+interval.
+ 
+ 
+Inferences:  
+1.  The  overall  traffic  shows  significant  volatility,  with  packet  rates  fluctuating  between  2  and  
+40
+ 
+packets
+ 
+per
+ 
+500
+ 
+ms
+ 
+.
+
+2.  A  notable  peak  occurs  just  after  30  seconds,  reaching  nearly  40  packets/500  ms.  3.  Traffic  is  continuous  throughout  the  capture,  indicating  an  active  network  session  without  
+complete
+ 
+idle
+ 
+periods.
+ 4.  The  baseline  traffic  level  mostly  stays  above  5  packets  per  500  ms.  5.  The  high  frequency  of  small  spikes  suggests  many  short-lived  communications  or  
+frequent
+ 
+protocol
+ 
+acknowledgments.
+ 
+Inferences:  
+1.  The  TCP  graph  follows  a  similar  pattern  to  the  "All  Packets"  graph  but  at  a  lower  volume,  
+peaking
+ 
+around
+ 
+15
+ 
+packets.
+ 2.  The  presence  of  traffic  using  tcp.analysis.flags suggests  some  degree  of  
+retransmissions
+ 
+or
+ 
+window
+ 
+updates
+ 
+in
+ 
+the
+ 
+capture.
+ 3.  A  significant  burst  of  TCP  activity  is  visible  between  38  and  42  seconds.  4.  The  graph  shows  that  TCP  is  a  primary  contributor  to  the  overall  network  load.  5.  Between  10s  and  20s,  TCP  traffic  maintains  a  steady,  lower-volume  baseline.
+
+Inferences:  
+1.  TLS  traffic  is  highly  bursty,  appearing  only  in  specific  intervals  rather  than  continuously.  2.  Two  major  spikes  are  recorded:  one  at  approximately  31  seconds  and  another  at  34  
+seconds.
+ 
++1
+ 3.  The  peak  volume  for  TLS  reaches  roughly  10  packets  per  500  ms.  4.  Outside  of  the  30-35  second  window,  TLS  traffic  is  virtually  non-existent,  suggesting  
+specific
+ 
+encrypted
+ 
+handshake
+ 
+events.
+ 5.  The  sharp  decline  after  the  spikes  indicates  the  completion  of  encrypted  data  transfers  
+or
+ 
+handshakes.
+
+Inferences:  
+1.  UDP  traffic  is  frequent  but  remains  at  a  low  volume  throughout  the  capture.  2.  The  highest  UDP  peak  occurs  near  the  40-second  mark,  reaching  nearly  20  packets.  
++1
+ 3.  UDP  activity  is  more  consistent  and  "noisier"  than  TLS  traffic,  appearing  across  the  
+entire
+ 
+timeline.
+ 4.  The  low  amplitude  of  the  spikes  suggests  background  services  (like  DNS  or  discovery  
+protocols)
+ 
+rather
+ 
+than
+ 
+large
+ 
+stream
+ 
+transfers.
+ 5.  The  consistent  baseline  around  0-5  packets  indicates  steady  background  UDP  activity.
+
+Inferences:  
+1.  ARP  traffic  is  the  lowest  volume  among  all  analyzed  protocols.  2.  The  graph  shows  consistent,  very  small  spikes,  rarely  exceeding  5  packets  per  500  ms.  3.  ARP  activity  is  distributed  evenly  across  the  capture,  indicating  ongoing  hardware  
+address
+ 
+resolution.
+ 4.  The  lack  of  large  spikes  confirms  there  were  no  "ARP  storms"  or  massive  network  
+discovery
+ 
+events.
+ 5.  ARP  constitutes  a  negligible  portion  of  the  total  bandwidth  used  in  the  capture.
+
+●  All  Packets  (Black  Line):  *Represents  the  total  aggregate  traffic,  exhibiting  high  
+volatility
+ 
+with
+ 
+peaks
+ 
+reaching
+ 
+nearly
+ 
+40
+ 
+packets
+ 
+per
+ 
+interval
+ 
+around
+ 
+the
+ 
+38-second
+ 
+mark.
+ ○  The  continuous  presence  of  data  suggests  an  active  session  with  no  complete  
+silence
+ 
+periods.
+ ●  TCP  Traffic  (Green  Line):   Filtered  by  tcp.analysis.flags,  this  shows  a  steady  
+baseline
+ 
+of
+ 
+TCP
+ 
+activity
+ 
+that
+ 
+mirrors
+ 
+the
+ 
+overall
+ 
+traffic
+ 
+trend
+ 
+but
+ 
+at
+ 
+a
+ 
+lower
+ 
+volume.
+ ○  The  consistent  spikes  indicate  regular  acknowledgment  and  window  update  
+processes.
+ ●  UDP  Traffic  (Brown  Line):   UDP  exhibits  frequent,  low-amplitude  spikes  throughout  the  
+capture,
+ 
+often
+ 
+peaking
+ 
+concurrently
+ 
+with
+ 
+TCP
+ 
+bursts.
+ ○  This  typically  represents  background  services  like  DNS  queries  or  discovery  
+protocols.
+ ●  TLS  Traffic  (Cyan  Line):   TLS  activity  is  highly  localized,  with  significant  spikes  
+occurring
+ 
+only
+ 
+between
+ 
+the
+ 
+30s
+ 
+and
+ 
+40s
+ 
+mark.
+ ○  This  indicates  specific  encrypted  handshake  events  or  HTTPS  data  transfers  
+occurring
+ 
+during
+ 
+that
+ 
+window.
+ ●  ARP  Traffic  (Pink  Line):  *ARP  traffic  remains  at  a  very  low,  near-constant  baseline  
+throughout
+ 
+the
+ 
+session.This
+ 
+confirms
+ 
+normal
+ 
+address
+ 
+resolution
+ 
+behavior
+ 
+without
+ 
+any
+ 
+signs
+ 
+of
+ 
+network
+ 
+scanning
+ 
+or
+ 
+ARP
+ 
+storms.
+
+2.  Python/Scapy  I/O  Graph  Recreation  
+The  five  graphs  were  recreated  using  Python  and  the  Scapy  library  to  match  the  Wireshark  UI  
+visuals.
+ 
+  import matplotlib.pyplot as plt  from scapy.all import rdpcap,  TCP,  UDP,  ARP,  IP   #  Load  the  pcap  file  pkts = rdpcap('24bce1580.pcap')  start_time = float(pkts[0].time)   def get_data(filter_func,  interval=0.5):      counts = {}      filtered = [p for p in pkts if filter_func(p)]      for p in filtered:          t = int((float(p.time)  - start_time)  / interval)          time_key = t * interval          counts[time_key]  = counts.get(time_key,  0)  + 1      return list(counts.keys()),  list(counts.values())   #  Filters  and  Colors  matched  to  your  Wireshark  UI  filters = [      ("All  Packets",  lambda p:  True,  "black"),      ("tcp",  lambda p:  p.haslayer(TCP),  "lawngreen"),      ("TLS",  lambda p:  p.haslayer(TCP)  and (p[TCP].dport  == 443 or p[TCP].sport  == 443),  "cyan"),      ("ARP",  lambda p:  p.haslayer(ARP),  "hotpink"),      ("UDP",  lambda p:  p.haslayer(UDP),  "saddlebrown")  ]   plt.figure(figsize=(12,  6))   for label,  func,  col in filters:      x,  y = get_data(func)      if x:  #  Only  plot  if  data  exists          lists = sorted(zip(x,  y))          x,  y = zip(*lists)
+
+plt.plot(x,  y,  label=label,  color=col,  linewidth=1.2)   #  SETTING  THE  RANGE  TO  MATCH  YOUR  SCREENSHOT  plt.xlim(0,  85)    #  Time  in  seconds  plt.ylim(0,  80)    #  Packets  per  500ms  plt.yticks([0,  20,  40,  60,  80],  ['0  packets',  '20  packets',  '40  packets',  '60  packets',  '80  packets'])   plt.title("Wireshark  I/O  Graphs  Recreation")  plt.xlabel("Time  (s)")  plt.ylabel("Packets  /  500  ms")  plt.legend(loc='upper  right')  plt.grid(True,  linestyle=':',  alpha=0.6)   plt.savefig('io_graph_matched.png')  plt.show()    The  generated  image  io_graph_matched.png successfully  mirrors  the  trends  observed  in  
+the
+ 
+Wireshark
+ 
+UI
+ 
+.
+
+3.  Protocol  Hierarchy  Metrics  
+The  protocol  hierarchy  was  analyzed  to  extract  total  packet  counts  and  data  sizes.  
+ import csv  from scapy.all import rdpcap   #  1.  Load  the  capture  file  pkts = rdpcap('24bce1580.pcap')   #  2.  Calculate  Metrics  total_packets = len(pkts)  total_captured_size = sum(len(p)  for p in pkts)  #  Payload  is  the  data;  Headers  =  Total  size  -  Payload  size  size_of_data = sum(len(p.payload)  for p in pkts)  size_of_headers = total_captured_size - size_of_data   #  3.  Print  results  to  console  as  required  print("---  Protocol  Hierarchy  Metrics  ---")  print(f"Total  number  of  packets:  {total_packets}")  print(f"Size  of  data:  {size_of_data} bytes")  print(f"Size  of  headers:  {size_of_headers} bytes")   #  4.  Save  to  CSV  with open('protocol_hierarchy_extracted.csv',  'w',  newline='')  as f:      writer = csv.writer(f)      writer.writerow(["Metric",  "Value"])      writer.writerow(["Total  Packets",  total_packets])      writer.writerow(["Size  of  Data  (Payload)",  size_of_data])      writer.writerow(["Size  of  Headers",  size_of_headers])   print("\nFile  saved:  protocol_hierarchy_extracted.csv")
+
+4.  Conversation  Analysis  
+The  capture  was  analyzed  for  unique  address  pairs  and  their  communication  metrics.  
+  import csv  from scapy.all  import rdpcap,  IP,  TCP,  UDP  from collections import defaultdict   pkts = rdpcap('24bce1580.pcap')  stats = defaultdict(lambda:  {'packets':  0,  'bytes':  0,  'times':  [],  'protocols':  set()})   for p in pkts:      if IP  in p:          #  Identify  the  unique  pair  (A  <->  B)          pair = tuple(sorted([p[IP].src,  p[IP].dst]))                  #  Determine  protocol  for  this  packet          proto = "Other"          if p.haslayer(TCP):  proto = "TCP"          elif p.haslayer(UDP):  proto = "UDP"                  stats[pair]['packets']  += 1          stats[pair]['bytes']  += len(p)          stats[pair]['times'].append(float(p.time))          stats[pair]['protocols'].add(proto)   #  Find  unique  address  pair  with  maximum  bytes  max_pair = max(stats,  key=lambda k:  stats[k]['bytes'])
+
+print(f"Max  Communication  Pair:  {max_pair} ({stats[max_pair]['bytes']} 
+bytes)")   #  Export  to  CSV  and  calculate  Inter-packet  time  with open('conversations.csv',  'w',  newline='')  as f:      writer = csv.writer(f)      writer.writerow(["Address  Pair",  "Total  Packets",  "Total  Bytes",  "Avg  
+Inter-Packet
+ 
+Time
+ 
+(s)",  "Protocols"])       for pair,  data in stats.items():          #  Calculate  Avg  Inter-packet  time          avg_diff = 0          if len(data['times'])  > 1:              diffs = [data['times'][i+1]  - data['times'][i]  for i in range(len(data['times'])-1)]              avg_diff = sum(diffs)  / len(diffs)                  writer.writerow([              f"{pair[0]} <->  {pair[1]}",              data['packets'],              data['bytes'],              f"{avg_diff:.6f}",              ",  ".join(data['protocols'])          ])   print("Conversation  analysis  saved  to  conversations.csv")
