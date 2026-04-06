@@ -1,0 +1,53 @@
+COMPUTER  NETWORKS  LAB  TASK  1  24BCE1580  Ashvin  K  S   Linux  Commands   1.ifconfig     
+2.iwconfig          3.mtr
+
+4.top   
+  5.ps
+
+6.service  network  status       7.netstat
+
+8.traceroute
+
+9.dig                              10.w
+
+11.who      13.host       1  1           
+14.hostname    15.hostid
+
+16.ping   
+  17.arp
+
+18.ss
+
+19.nslookup  
+  20.route
+
+Windows  Commands:   1.ipconfig
+
+2.netsh  interface  ipv4  show  interfaces  
+  3.pathping
+
+4.tasklist
+
+
+
+5.  Get-Process  
+         6.Get-Service
+
+
+
+7.netstat
+
+8.tracert  
+  9.Resolve-DnsName  
+  10.nslookup  
+  11.hostname
+
+12.ping  google.com  
+  13.arp
+
+14.  netstat  -ano
+
+15.route
+
+16.getmac  
+  17.whoami
