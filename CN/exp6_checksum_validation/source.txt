@@ -1,0 +1,201 @@
+Digital Assignment – Wireshark Checksum Calculation
+Registration no: 24BCE1580
+Course: Computer Networks
+Topic: Checksum Validation using Wireshark & Scapy
+1. Objective
+To capture network packets using Wireshark, analyze them in a .pcap file, and
+programmatically validate IP, TCP, UDP, and ICMP checksums using Python's Scapy library.
+2. Theory
+A checksum is an error-detection mechanism used in network protocols to verify data integrity
+during transmission.
+ProtocolChecksum Scope
+IP Covers the IP header only (not payload)
+TCP Covers TCP header + data + pseudo-header (src IP, dst IP, protocol, length)
+UDP Covers UDP header + data + pseudo-header; optional in IPv4 (zero = disabled)
+ICMP Covers the entire ICMP message (header + data)
+Possible checksum states:
+3. Tools & Environment
+VALID – Original checksum matches recalculated value; packet is intact.
+CORRUPT – Mismatch detected; data may have been altered in transit.
+OFFLOADED – Checksum is 0x0000; the NIC computes it in hardware before
+transmission.
+DISABLED – UDP checksum set to zero, meaning the sender chose not to compute it.
+Wireshark – Packet capture and inspection
+
+4. Wireshark Packet Capture & Analysis
+4.1 How to ?
+The validate checksum option available in wireshark edit->preference->protocol:
+4.2 TCP Checksum Details
+Python 3 with Scapy – Programmatic checksum validation
+Capture file: fortoday.pcap
+
+4.3 UDP Checksum Details
+
+4.4 ICMP Checksum Details
+
+5. Method 2: Manual Checksum Calculation
+Steps to manually compute the IP header checksum:
+Calculation:
+Field Hex Value
+Version + IHL + DSCP 4560
+Total Length 0050
+Identification 0000
+Flags + Fragment Offset 4000
+TTL + Protocol 7606
+Header Checksum (set to 0)0000
+Source IP (first 2 bytes) 23ba
+Source IP (last 2 bytes) 0a3a
+Destination IP (first 2 bytes)be8b
+Destination IP (last 2 bytes)(from packet)
+1. Skip the Ethernet header – The first 14 bytes are the Ethernet header (Destination MAC,
+Source MAC, EtherType). Skip these.
+2. Locate the IP header – The 15th byte onward is the start of the IPv4 header. The IP header
+is 20 bytes long (for a standard header without options).
+3. Split the IP header into 16-bit (2-byte) words and sum them, setting the checksum field
+to 0x0000 before adding.
+4. Sum all 16-bit words:
+
+4560+ 0050+ 0000+ 4000+ 7606+ 0000+ 23ba+ 0a3a+ be8b+ D stIP = T otal
+Checksum = 0xFFFF− 0x099A= 0x2665
+5. Handle the carry – If the sum exceeds 16 bits (i.e., > 0xFFFF), add the carry back:
+Sum = 0x20998 → carry = 2
+0998 + 2 = 0x099A
+6. Take the one's complement (bitwise NOT, restricted to 16 bits):
+7. Result: The manually calculated IP checksum is 0x2665 — this should match the
+checksum shown in Wireshark, confirming packet integrity.
+
+6. Python Script – Checksum Validator
+
+The following script reads a .pcap file with Scapy, strips each packet's checksum, rebuilds the
+packet to recalculate it, and compares the original with the recalculated value.
+from scapy.allimport rdpcap, IP, TCP, UDP, ICMP
+import sys
+defvalidate_checksums(pcap_file):
+"""Validate IP, TCP, UDP, and ICMP checksums for every packet in a
+pcap."""
+try:
+packets = rdpcap(pcap_file)
+except FileNotFoundError:
+print(f"Error: File '{pcap_file}' not found.")
+return
+except Exception as e:
+print(f"Error reading pcap: {e}")
+return
+stats ={"valid":0,"corrupt":0,"offloaded":0,"disabled":0}
+total_checked =0
+header =f"{'Pkt #':<7} | {'Layer':<6} | {'Original':<12} | 
+{'Recalculated':<12} | {'Status'}"
+print(f"\n=== Checksum Validation: {pcap_file} ({len(packets)} packets)
+===\n")
+print(header)
+print("-"*len(header))
+for i, pkt inenumerate(packets, start=1):
+# --- IP checksum ---
+if pkt.haslayer(IP):
+orig = pkt[IP].chksum
+del pkt[IP].chksum
+rebuilt = IP(bytes(pkt[IP]))
+recalc = rebuilt.chksum
+if orig ==0:
+status ="OFFLOADED"
+stats["offloaded"]+=1
+elif orig == recalc:
+status ="VALID"
+stats["valid"]+=1
+else:
+status ="CORRUPT"
+stats["corrupt"]+=1
+
+total_checked +=1
+pkt[IP].chksum = orig
+print(f"{i:<7} | {'IP':<6} | {hex(orig):<12} | {hex(recalc):<12} |
+{status}")
+# --- TCP checksum ---
+if pkt.haslayer(TCP):
+orig = pkt[TCP].chksum
+del pkt[TCP].chksum
+rebuilt = pkt.__class__(bytes(pkt))
+recalc = rebuilt[TCP].chksum
+if orig ==0:
+status ="OFFLOADED"
+stats["offloaded"]+=1
+elif orig == recalc:
+status ="VALID"
+stats["valid"]+=1
+else:
+status ="CORRUPT/OFFLOAD"
+stats["corrupt"]+=1
+total_checked +=1
+pkt[TCP].chksum = orig
+print(f"{i:<7} | {'TCP':<6} | {hex(orig):<12} | {hex(recalc):<12}
+| {status}")
+# --- UDP checksum ---
+if pkt.haslayer(UDP):
+orig = pkt[UDP].chksum
+if orig ==0:
+status ="DISABLED"
+recalc =0
+stats["disabled"]+=1
+else:
+del pkt[UDP].chksum
+rebuilt = pkt.__class__(bytes(pkt))
+recalc = rebuilt[UDP].chksum
+if orig == recalc:
+status ="VALID"
+stats["valid"]+=1
+else:
+status ="CORRUPT"
+stats["corrupt"]+=1
+total_checked +=1
+pkt[UDP].chksum = orig
+print(f"{i:<7} | {'UDP':<6} | {hex(orig):<12} | {hex(recalc):<12}
+| {status}")
+
+6.1 How It Works
+7. Output & Results
+# --- ICMP checksum ---
+if pkt.haslayer(ICMP):
+orig = pkt[ICMP].chksum
+del pkt[ICMP].chksum
+rebuilt = pkt.__class__(bytes(pkt))
+recalc = rebuilt[ICMP].chksum
+if orig == recalc:
+status ="VALID"
+stats["valid"]+=1
+else:
+status ="CORRUPT"
+stats["corrupt"]+=1
+total_checked +=1
+pkt[ICMP].chksum = orig
+print(f"{i:<7} | {'ICMP':<6} | {hex(orig):<12} | {hex(recalc):<12}
+| {status}")
+# --- Summary ---
+print(f"\n{'='*len(header)}")
+print(f"Total checksums checked : {total_checked}")
+print(f"  Valid                 : {stats['valid']}")
+print(f"  Corrupt / Offloaded   : {stats['corrupt']}")
+print(f"  Offloaded (zero)      : {stats['offloaded']}")
+print(f"  Disabled (UDP zero)   : {stats['disabled']}")
+print()
+if __name__ =="__main__":
+pcap = sys.argv[1]iflen(sys.argv)>1else"fortoday.pcap"
+validate_checksums(pcap)
+1. Read the pcap file using rdpcap().
+2. For each packet, check if it contains IP / TCP / UDP / ICMP layers.
+3. Save the original checksum, delete it from the packet, then rebuild the packet — Scapy
+automatically recalculates the checksum.
+4. Compare the original vs. recalculated checksum and classify the result.
+5. Print a formatted table and summary statistics.
+
+
+
+
+
+8. Conclusion
+Successfully captured live network traffic using Wireshark and saved it as a .pcap file.
+Developed a Python script using Scapy to programmatically validate checksums across all
+four protocol layers (IP, TCP, UDP, ICMP).
+The script correctly identifies valid, corrupt, offloaded, and disabled checksums.
+Checksum offloading by the NIC is a common observation — packets captured on the
+sending machine often show mismatched checksums because the NIC computes them in
+hardware after the OS hands off the packet.
