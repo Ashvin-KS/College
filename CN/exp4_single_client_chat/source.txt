@@ -1,0 +1,140 @@
+Network Simulation Lab Report
+Submitted By: Ashvin K S
+Registration Number: 24BCE1580
+Experiment 1: Single Client Chatting - TCP and UDP
+Communication in ns-3
+Objective: Perform Single Client Chatting using UDP protocols over a point-to-point link.
+Network Topology:
+1. Source Code ( single-client-chat.cc)
+Node 0: Client
+Node 1: Server
+Link: Point-to-Point (5Mbps Data Rate, 2ms Delay)
+#include"ns3/core-module.h"
+#include"ns3/network-module.h"
+#include"ns3/internet-module.h"
+#include"ns3/point-to-point-module.h"
+#include"ns3/applications-module.h"
+#include<iostream>
+#include<vector>
+usingnamespace ns3;
+// --- Server Application ---
+classSingleServerApp:publicApplication{
+public:
+SingleServerApp():m_udpSocket(0),m_tcpSocket(0){}
+private:
+virtualvoidStartApplication(void){
+// Setup UDP on Port 8080
+m_udpSocket =Socket::CreateSocket(GetNode(),
+UdpSocketFactory::GetTypeId());
+m_udpSocket->Bind(InetSocketAddress(Ipv4Address::GetAny(),8080));
+m_udpSocket->SetRecvCallback(MakeCallback
+(&SingleServerApp::HandleReadUdp,this));
+// Setup TCP on Port 8081
+
+m_tcpSocket =Socket::CreateSocket(GetNode(),
+TcpSocketFactory::GetTypeId());
+m_tcpSocket->Bind(InetSocketAddress(Ipv4Address::GetAny(),8081));
+m_tcpSocket->Listen();
+m_tcpSocket->SetAcceptCallback(
+MakeCallback(&SingleServerApp::HandleRequestTcp,this),
+MakeCallback(&SingleServerApp::HandleAcceptTcp,this)
+);
+}
+boolHandleRequestTcp(Ptr<Socket> socket,const Address& from){
+returntrue;// Explicitly allow TCP connections
+}
+voidHandleAcceptTcp(Ptr<Socket> socket,const Address& from){
+socket->SetRecvCallback(MakeCallback
+(&SingleServerApp::HandleReadTcp,this));
+m_tcpSockets.push_back(socket);// Store socket to prevent SIGSEGV
+}
+voidHandleReadUdp(Ptr<Socket> socket){
+Ptr<Packet> packet; Address from;
+while((packet = socket->RecvFrom(from))){
+std::cout <<"[UDP] Server received "<< packet->GetSize()
+<<" bytes at "<<Simulator::Now().GetSeconds()<<"
+s\n";
+}
+}
+voidHandleReadTcp(Ptr<Socket> socket){
+Ptr<Packet> packet; Address from;
+while((packet = socket->RecvFrom(from))){
+if(packet->GetSize()>0){
+std::cout <<"[TCP] Server received "<< packet->GetSize()
+<<" bytes at "<<Simulator::Now().GetSeconds()
+<<" s\n";
+}
+}
+}
+Ptr<Socket> m_udpSocket;
+Ptr<Socket> m_tcpSocket;
+std::vector<Ptr<Socket>> m_tcpSockets;
+};
+// --- Client Application ---
+
+classSingleClientApp:publicApplication{
+public:
+SingleClientApp():m_socket(0){}
+voidSetup(Address peer,uint32_t count, TypeId tid){
+m_peer = peer; m_count = count; m_tid = tid;
+}
+private:
+virtualvoidStartApplication(void){
+m_socket =Socket::CreateSocket(GetNode(), m_tid);
+m_socket->Connect(m_peer);
+// Slight delay after connect to allow TCP handshake to complete
+safely
+Simulator::Schedule(Seconds(0.1),&SingleClientApp::SendPacket,
+this);
+}
+voidSendPacket(){
+if(m_count >0){
+m_socket->Send(Create<Packet>(1024));// 1024 bytes packet size
+m_count--;
+Simulator::Schedule(Seconds(1.0),&SingleClientApp::SendPacket,
+this);// 1 second interval
+}
+}
+Ptr<Socket> m_socket;
+Address m_peer;
+uint32_t m_count;
+TypeId m_tid;
+};
+intmain(int argc,char*argv[]){
+Time::SetResolution(Time::NS);
+NodeContainer nodes;
+nodes.Create(2);
+PointToPointHelper p2p;
+p2p.SetDeviceAttribute("DataRate",StringValue("5Mbps"));
+p2p.SetChannelAttribute("Delay",StringValue("2ms"));
+NetDeviceContainer devices = p2p.Install(nodes);
+InternetStackHelper internet;
+internet.Install(nodes);
+Ipv4AddressHelper ipv4;
+
+2. Execution Output
+Command Executed: ./ns3 run scratch/single-client-chat
+Terminal Output:
+ipv4.SetBase("10.1.1.0","255.255.255.0");
+Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
+// Install Server on Node 1
+Ptr<SingleServerApp> server =CreateObject<SingleServerApp>();
+nodes.Get(1)->AddApplication(server);
+server->SetStartTime(Seconds(0.0));
+// Install UDP Client on Node 0
+Ptr<SingleClientApp> udpClient =CreateObject<SingleClientApp>();
+udpClient->Setup(InetSocketAddress(interfaces.GetAddress(1),8080),10,
+UdpSocketFactory::GetTypeId());
+nodes.Get(0)->AddApplication(udpClient);
+udpClient->SetStartTime(Seconds(2.0));
+// Install TCP Client on Node 0 (Starts slightly later)
+Ptr<SingleClientApp> tcpClient =CreateObject<SingleClientApp>();
+tcpClient->Setup(InetSocketAddress(interfaces.GetAddress(1),8081),10,
+TcpSocketFactory::GetTypeId());
+nodes.Get(0)->AddApplication(tcpClient);
+tcpClient->SetStartTime(Seconds(2.5));
+Simulator::Stop(Seconds(15.0));
+Simulator::Run();
+Simulator::Destroy();
+return0;
+}
