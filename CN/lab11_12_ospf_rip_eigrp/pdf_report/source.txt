@@ -1,0 +1,65 @@
+CPT - Routing in Computer Networks
+Name: Ashvin K S
+Registration Number: 24BCE1580
+Objective: To perform routing in Cisco Packet Tracer (CPT) using the OSPF, RIP, and EIGRP
+protocols and document the steps required.
+Step 1: Network Topology Setup
+To begin the routing configurations, the physical network topology was constructed within Cisco
+Packet Tracer.
+The setup utilizes three routers (two 2811 series and one 2621XM series) connected via
+Serial DTE cables.
+The routers were equipped with HWIC-2T and WIC-2T serial modules to enable these serial
+connections.
+Two 2950-24 switches were used to connect the local end-user PCs to the FastEthernet
+interfaces of the routers.
+IP addresses were successfully configured on all active FastEthernet and Serial interfaces,
+and their states were brought up using the no shutdown command.
+
+Step 2: OSPF (Open Shortest Path First) Configuration
+OSPF was implemented to establish dynamic routing across the network.
+Routing Table Verifications (OSPF):
+(The 'O' on the left side of the tables indicates routes learned via OSPF).
+The protocol was initialized on each router using Process ID 1 (router ospf 1).
+The active directly connected networks for each router were advertised into OSPF.
+To prevent adjacency mismatch errors, all advertised networks were assigned to a single
+backbone area (area 0).
+The routers successfully formed neighbor relationships, and the routing tables were
+populated.
+
+Router 1:
+Router 2:
+
+Router 3:
+Step 3: RIP (Routing Information Protocol) Configuration
+The OSPF configurations were removed (no router ospf 1), and the network was
+reconfigured to use RIP.
+Routing Table Verifications (RIP):
+(The 'R' on the left side of the tables indicates routes learned via RIP).
+Router 1:
+RIP Version 2 was enabled (version 2) to support classless inter-domain routing.
+The no auto-summary command was applied to prevent the routers from automatically
+summarizing subnets to their major classful boundaries.
+The active networks were advertised into the RIP process, and the routing tables updated
+accordingly.
+
+Router 2:
+Router 3:
+Step 4: EIGRP (Enhanced Interior Gateway Routing Protocol)
+Configuration
+The RIP configurations were removed (no router rip), and the network was finalized using
+EIGRP.
+EIGRP was initialized on all routers using Autonomous System (AS) number 100 (router
+eigrp 100).
+The no auto-summary command was applied.
+
+Routing Table Verifications (EIGRP):
+(The 'D' on the left side of the tables indicates routes learned via EIGRP).
+Router 1:
+Router 2:
+The connected networks were advertised along with their specific wildcard masks to ensure
+precise subnet matching.
+The routers successfully formed EIGRP neighbor adjacencies, and the routing tables were
+updated.
+
+Router 3:
+GitHub Repository: https://github.com/Ashvin-KS/College/tree/main/CN
