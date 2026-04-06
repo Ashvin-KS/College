@@ -1,0 +1,280 @@
+COMPUTER NETWORKS 
+BCSE308P 
+LAB TASK 4 
+24BCE1580 
+Ashvin K S 
+ 
+ 
+Objective 
+The objective of this lab is to install the ns-3 network simulator and implement five different 
+network topologies (Bus, Star, Ring, Grid, and Dumbbell) consisting of 15 to 25 nodes each, 
+and visualize them using the NetAnim (nsnam) tool. 
+System Configuration & Installation 
+• Simulator: ns-3.43 
+• Visualization Tool: NetAnim v3.109 
+• Installation Command: sudo ./ns3 configure --enable-examples --enable-
+tests followed by ./ns3 build
+
+Topology 1: Bus Topology (15 Nodes) 
+Description: This topology uses a shared CSMA channel where 15 nodes are connected to 
+a single communication line 
+ 
+CODE: 
+#include "ns3/core-module.h" 
+#include "ns3/network-module.h" 
+#include "ns3/csma-module.h" 
+#include "ns3/internet-module.h" 
+#include "ns3/netanim-module.h" 
+#include "ns3/mobility-module.h" 
+ 
+using namespace ns3; 
+ 
+int main() { 
+    NodeContainer nodes; 
+    nodes.Create(15); 
+ 
+    CsmaHelper csma; 
+    csma.SetChannelAttribute("DataRate", StringValue("100Mbps")); 
+    csma.SetChannelAttribute("Delay", TimeValue(NanoSeconds(6560))); 
+ 
+    NetDeviceContainer devices = csma.Install(nodes); 
+ 
+    InternetStackHelper stack; 
+    stack.Install(nodes); 
+ 
+    Ipv4AddressHelper address;
+
+address.SetBase("10.1.1.0", "255.255.255.0"); 
+    address.Assign(devices); 
+ 
+    MobilityHelper mobility; 
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel"); 
+    mobility.Install(nodes); 
+ 
+    AnimationInterface anim("bus_topology.xml"); 
+    for (uint32_t i = 0; i < nodes.GetN(); ++i) { 
+        anim.SetConstantPosition(nodes.Get(i), 10.0 + (i * 10.0), 50.0); 
+    } 
+ 
+    Simulator::Run(); 
+    Simulator::Destroy(); 
+    return 0; 
+} 
+OUTPUT:
+
+Topology 2: Star Topology (20 Nodes) 
+Description: A central hub node connected to 19 spoke nodes using point-to-point links. 
+ 
+CODE: 
+#include "ns3/core-module.h" 
+#include "ns3/network-module.h" 
+#include "ns3/point-to-point-layout-module.h" 
+#include "ns3/netanim-module.h" 
+#include "ns3/mobility-module.h" 
+ 
+using namespace ns3; 
+ 
+int main() { 
+    uint32_t nSpokes = 19; 
+    PointToPointHelper p2p; 
+    p2p.SetDeviceAttribute("DataRate", StringValue("5Mbps")); 
+    p2p.SetChannelAttribute("Delay", StringValue("2ms")); 
+ 
+    PointToPointStarHelper star(nSpokes, p2p); 
+ 
+    InternetStackHelper stack; 
+    star.InstallStack(stack); 
+    star.AssignIpv4Addresses(Ipv4AddressHelper("10.1.1.0", "255.255.255.0")); 
+ 
+    MobilityHelper mobility; 
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+
+mobility.Install(star.GetHub()); 
+    for (uint32_t i = 0; i < star.SpokeCount(); ++i) { 
+        mobility.Install(star.GetSpokeNode(i)); 
+    } 
+ 
+    AnimationInterface anim("star_topology.xml"); 
+    star.BoundingBox(20, 20, 80, 80); // Helper function for star layout 
+ 
+    Simulator::Run(); 
+    Simulator::Destroy(); 
+    return 0; 
+} 
+OUTPUT:
+
+Topology 3: Ring Topology (16 Nodes) 
+Description: 16 nodes connected in a circular closed loop where each node is connected to 
+exactly two other nodes. 
+ 
+CODE: 
+#include "ns3/core-module.h" 
+#include "ns3/network-module.h" 
+#include "ns3/point-to-point-module.h" 
+#include "ns3/internet-module.h" 
+#include "ns3/netanim-module.h" 
+#include "ns3/mobility-module.h" 
+#include <cmath> 
+ 
+using namespace ns3; 
+ 
+int main() { 
+    uint32_t nNodes = 16; 
+    NodeContainer nodes; 
+    nodes.Create(nNodes); 
+ 
+    PointToPointHelper p2p; 
+    p2p.SetDeviceAttribute("DataRate", StringValue("10Mbps")); 
+    p2p.SetChannelAttribute("Delay", StringValue("2ms")); 
+ 
+    InternetStackHelper stack; 
+    stack.Install(nodes);
+
+Ipv4AddressHelper address; 
+    for (uint32_t i = 0; i < nNodes; i++) { 
+        NodeContainer linkNodes(nodes.Get(i), nodes.Get((i + 1) % nNodes)); 
+        NetDeviceContainer dev = p2p.Install(linkNodes); 
+        std::ostringstream subnet; 
+        subnet << "10.1." << i + 1 << ".0"; 
+        address.SetBase(subnet.str().c_str(), "255.255.255.0"); 
+        address.Assign(dev); 
+    } 
+ 
+    MobilityHelper mobility; 
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel"); 
+    mobility.Install(nodes); 
+ 
+    AnimationInterface anim("ring_topology.xml"); 
+    for (uint32_t i = 0; i < nNodes; i++) { 
+        double theta = 2 * M_PI * i / nNodes; 
+        anim.SetConstantPosition(nodes.Get(i), 50 + 30 * cos(theta), 50 + 30 * sin(theta)); 
+    } 
+ 
+    Simulator::Run(); 
+    Simulator::Destroy(); 
+    return 0; 
+}
+
+OUTPUT:
+
+Topology 4: Dumbbell Topology (22 Nodes) 
+Description: Two star networks (10 leaf nodes each) connected via a central bottleneck link 
+through two routers. 
+ 
+CODE: 
+#include "ns3/core-module.h" 
+#include "ns3/network-module.h" 
+#include "ns3/point-to-point-layout-module.h" 
+#include "ns3/netanim-module.h" 
+#include "ns3/mobility-module.h" 
+ 
+using namespace ns3; 
+ 
+int main() { 
+    uint32_t nLeaf = 10; 
+    PointToPointHelper p2pLeaf; 
+    p2pLeaf.SetDeviceAttribute("DataRate", StringValue("10Mbps")); 
+    p2pLeaf.SetChannelAttribute("Delay", StringValue("1ms")); 
+ 
+    PointToPointHelper p2pBridge; 
+    p2pBridge.SetDeviceAttribute("DataRate", StringValue("2Mbps")); 
+    p2pBridge.SetChannelAttribute("Delay", StringValue("10ms")); 
+ 
+    PointToPointDumbbellHelper dumbbell(nLeaf, p2pLeaf, nLeaf, p2pLeaf, p2pBridge); 
+ 
+    InternetStackHelper stack;
+
+dumbbell.InstallStack(stack); 
+    dumbbell.AssignIpv4Addresses(Ipv4AddressHelper("10.1.1.0", "255.255.255.0"), 
+                                 Ipv4AddressHelper("10.2.1.0", "255.255.255.0"), 
+                                 Ipv4AddressHelper("10.3.1.0", "255.255.255.0")); 
+ 
+    MobilityHelper mobility; 
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel"); 
+    mobility.Install(dumbbell.GetLeft()); 
+    mobility.Install(dumbbell.GetRight()); 
+    for (uint32_t i = 0; i < nLeaf; ++i) { 
+        mobility.Install(dumbbell.GetLeft(i)); 
+        mobility.Install(dumbbell.GetRight(i)); 
+    } 
+ 
+    AnimationInterface anim("dumbbell_topology.xml"); 
+    dumbbell.BoundingBox(10, 10, 90, 90); 
+ 
+    Simulator::Run(); 
+    Simulator::Destroy(); 
+    return 0; 
+} 
+OUTPUT:
+
+
+
+Topology 5: Grid Topology (25 Nodes) 
+Description: Nodes arranged in a 5x5 matrix structure connected by horizontal and vertical 
+point-to-point links. 
+ 
+CODE: 
+ 
+#include "ns3/core-module.h" 
+#include "ns3/network-module.h" 
+#include "ns3/internet-module.h" 
+#include "ns3/point-to-point-module.h" 
+#include "ns3/point-to-point-layout-module.h" // CORRECT HEADER 
+#include "ns3/netanim-module.h" 
+#include "ns3/mobility-module.h" 
+ 
+using namespace ns3; 
+ 
+int main(int argc, char *argv[]) { 
+    // 1. Setup the P2P Links 
+    PointToPointHelper p2p; 
+    p2p.SetDeviceAttribute("DataRate", StringValue("10Mbps")); 
+    p2p.SetChannelAttribute("Delay", StringValue("2ms")); 
+ 
+    // 2. Create a 5x5 Grid (25 nodes total) 
+    // PointToPointGridHelper (nRows, nCols, p2pHelper) 
+    PointToPointGridHelper grid(5, 5, p2p); 
+ 
+    // 3. Install Internet Stack 
+    InternetStackHelper stack;
+
+grid.InstallStack(stack); 
+ 
+    // 4. Assign IP Addresses 
+    grid.AssignIpv4Addresses(Ipv4AddressHelper("10.1.1.0", "255.255.255.0"), 
+                             Ipv4AddressHelper("10.2.1.0", "255.255.255.0")); 
+ 
+    // 5. Setup Mobility (Positions for NetAnim) 
+    MobilityHelper mobility; 
+    mobility.SetPositionAllocator("ns3::GridPositionAllocator", 
+                                  "MinX", DoubleValue(10.0),  
+                                  "MinY", DoubleValue(10.0), 
+                                  "DeltaX", DoubleValue(20.0),  
+                                  "DeltaY", DoubleValue(20.0), 
+                                  "GridWidth", UintegerValue(5),  
+                                  "LayoutType", StringValue("RowFirst")); 
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel"); 
+ 
+    // FIX: Install mobility on each node individually because 'grid.GetNodes()' does not exist 
+    for (uint32_t i = 0; i < 5; ++i) { // Rows 
+        for (uint32_t j = 0; j < 5; ++j) { // Cols 
+            mobility.Install(grid.GetNode(i, j)); 
+        } 
+    } 
+ 
+    // 6. Generate NetAnim XML 
+    AnimationInterface anim("grid_topology.xml"); 
+     
+    // Optional: Add a bounding box label for clarity
+
+grid.BoundingBox(0, 0, 100, 100); 
+ 
+    Simulator::Run(); 
+    Simulator::Destroy(); 
+    return 0; 
+} 
+ 
+OUTPUT: 
+ 
+GITHUB LINK : 
+https://github.com/Ashvin-KS/College/tree/main/CN
