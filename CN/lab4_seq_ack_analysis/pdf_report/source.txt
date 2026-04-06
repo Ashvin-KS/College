@@ -1,0 +1,254 @@
+Wireshark – Seq/ACK Analysis of Packets
+Field Detail
+Lab Title Understanding the Seq–ACK Analysis of Packets in Wireshark
+Name Ashvin K S
+Registration Number24BCE1580
+Tools Used hping3, Wireshark
+Platform Kali Linux
+Target IP 172.217.24.206
+Objective
+To capture and analyze TCP sequence and acknowledgement numbers using Wireshark, and
+to demonstrate various TCP-based attacks (SYN Flood, RST Attack, Data Flood, Session
+Hijacking, FIN-ACK Flood, Reflection Attack) using the hping3 packet crafting tool.
+Prerequisites
+TCP Flags Reference
+Flag Name Purpose
+S SYN Initiates a connection (synchronize sequence numbers)
+A ACK Acknowledges received data
+F FIN Gracefully terminates a connection
+R RST Forcibly resets / aborts a connection
+P PUSHPushes buffered data to the application immediately
+Kali Linux VM (or equivalent penetration testing environment)
+Root / sudo access
+Internet connectivity (target IP must be reachable)
+Wireshark installed (sudo apt install wireshark -y)
+
+Flag Name Purpose
+U URG Indicates urgent data (rarely used)
+Understanding these flags is essential to interpreting Wireshark captures and identifying
+attack traffic.
+Setup – Install hping3
+hping3 is a command-line packet crafting tool used to generate custom TCP/IP traffic.
+Attack 1: TCP SYN Flood
+AttributeDetail
+Type Denial of Service (DoS)
+SeverityHigh
+Target Server's half-open connection table
+Description
+In a SYN Flood attack, the attacker sends a large number of SYN packets without completing
+the three-way handshake. Each incomplete handshake occupies a slot in the server's backlog
+queue. When the queue fills up, legitimate connection requests are dropped.
+sudoaptinstall hping3 -y
+
+How the Three-Way Handshake is Exploited
+Command
+Flag Meaning
+-S Set SYN flag
+-p 80 Target port 80 (HTTP)
+-c 50 Send 50 packets then stop
+Output
+Observation: The server replies with SYN-ACK (flags=SA) for every SYN it receives,
+confirming it is processing the half-open connections. At scale, this exhausts the server's
+connection table.
+Mitigation
+Attacker          Server
+|  -- SYN ---->   |  Server allocates resources
+|  -- SYN ---->   |  Slot occupied
+|  -- SYN ---->   |  Queue fills up ...
+|  (no ACK)       |  Legitimate users blocked
+sudo hping3 -S-p80-c50172.217.24.206
+Enable SYN cookies (net.ipv4.tcp_syncookies = 1)
+Rate-limit incoming SYN packets with iptables
+Use a reverse proxy or load balancer with SYN flood protection
+
+Attack 2: TCP RST (Reset) Attack
+AttributeDetail
+Type Connection Disruption
+SeverityMedium–High
+Target Active TCP sessions
+Description
+A TCP RST attack sends forged RST packets to forcefully close an active connection between
+two parties. When a host receives a RST packet with a valid sequence number, the OS
+immediately tears down the session without further negotiation.
+Impact
+Command
+Flag Meaning
+-R Set RST flag
+-p 80 Target port 80
+-c 20 Send 20 packets then stop
+Output
+Observation: The server drops all RST packets silently — 0 received. This is expected
+behavior, as RST packets are not acknowledged in the TCP protocol.
+Mitigation
+Interrupts SSH, Telnet, VPN, video streams, and database connections
+Can be used as a targeted disruption against specific sessions
+sudo hping3 -R-p80-c20172.217.24.206
+
+Attack 3: TCP Data Flood
+AttributeDetail
+Type Denial of Service (DoS) / Bandwidth Exhaustion
+SeverityHigh
+Target Server bandwidth and CPU
+Description
+Unlike a SYN flood, a data flood first completes the TCP handshake and then sends large
+amounts of data to exhaust the server's bandwidth and CPU. The PUSH flag forces the server's
+TCP stack to immediately deliver data to the application layer without buffering.
+Command
+Flag Meaning
+-S SYN flag (establish connection)
+-P PUSH flag (force immediate processing)
+-p 80 Target port 80
+-c 50 Send 50 packets
+-d 100 100 bytes of payload per packet
+Output
+Data Flood – packets with 40 headers + 100 data bytes
+Use encrypted protocols (TLS/SSH) to prevent sequence number sniffing
+Implement stateful firewall inspection
+Monitor for anomalous RST packet volumes in Wireshark
+sudo hping3 -S-P-p80-c50-d100172.217.24.206
+
+_Data Flood statistics – 50 sent, 50 received, avg RTT 140.1 ms
+Observation: 100% packet loss was not observed because the server acknowledges the data
+(it has a valid session). The average RTT of ~140 ms indicates server processing load.
+Mitigation
+Attack 4: TCP Session Hijacking
+AttributeDetail
+Type Man-in-the-Middle / Impersonation
+SeverityCritical
+Target Active authenticated sessions
+Description
+Session hijacking occurs when an attacker takes over an existing TCP session by guessing or
+sniffing the correct sequence and acknowledgement numbers. Once the correct SEQ/ACK
+Deploy rate limiting on application and network layers
+Use DDoS mitigation services (e.g., Cloudflare, AWS Shield)
+Set connection and payload size limits on the web server
+
+values are known, the attacker can inject malicious data into the communication stream,
+impersonating a legitimate party.
+How it works in Wireshark
+Wireshark indicators of a hijack attempt:
+Sample Command
+Flag Meaning
+-S SYN flag
+-M <seq> Manually set TCP sequence number
+-c 10 Send 10 packets
+Mitigation
+Attack 5: FIN-ACK Flood
+AttributeDetail
+Type Denial of Service (DoS)
+1. Attacker places themselves in the network path (ARP spoofing, promiscuous mode, etc.)
+2. Wireshark captures the live traffic and reveals the current SEQ and ACK numbers
+3. The attacker crafts packets with matching sequence numbers using hping3
+4. The injected packets are accepted by the target as valid data
+Out-of-order packets appearing in the capture
+Duplicate ACKs from the legitimate receiver
+Unexpected RST packets as the real client detects desynchronization
+sudo hping3 -S-p80-M<sniffed_seq_num>-c10172.217.24.206
+Use TLS/SSL for all sensitive communications
+Implement IPSec for network-layer encryption
+Use unpredictable, randomized sequence numbers (enabled by default in modern OS)
+Monitor for duplicate ACKs and out-of-order segments in Wireshark
+
+AttributeDetail
+SeverityMedium
+Target Server's connection teardown resources
+Description
+A FIN-ACK flood sends a large number of FIN-ACK packets to a target. FIN-ACK packets are
+normally used to gracefully close connections. Processing these forces the server to allocate
+resources for fake session teardowns, consuming CPU cycles and memory.
+Command
+Flag Meaning
+-F Set FIN flag
+-A Set ACK flag
+-p 80 Target port 80
+-c 50 Send 50 packets then stop
+Output
+Observation: 100% packet loss — the server drops all FIN-ACK packets silently because there
+is no matching session state for these unsolicited packets. This confirms the target correctly
+validates connection state before processing teardown requests.
+Mitigation
+sudo hping3 -F-A-p80-c50172.217.24.206
+Stateful firewall rules that drop unsolicited FIN-ACK packets
+Rate-limit connection teardown requests
+Log and alert on FIN-ACK flood patterns in IDS/IPS
+
+Attack 6: TCP Reflection Attack
+AttributeDetail
+Type Distributed Denial of Service (DDoS)
+SeverityCritical
+Target Victim's network bandwidth
+Description
+In a reflection attack, the attacker spoofs the victim's IP as the source address and sends SYN
+packets to one or more reflector servers. The reflectors respond with SYN-ACK packets to the
+victim — not the attacker — flooding the victim with unsolicited traffic. Using multiple reflector
+servers turns this into a full-scale DDoS attack.
+Attack Flow
+Sample Command
+Flag Meaning
+-S SYN flag
+--spoof <IP> Spoof the source IP address to the victim's address
+-c 50 Send 50 packets
+Wireshark Observation
+The victim would see a flood of SYN-ACK packets arriving from the reflector. Since the victim
+never sent the original SYN, its TCP stack will respond with RST packets, generating additional
+outbound traffic as a side effect.
+Attacker ---[SYN, src=victim_IP]---> Reflector 1 ---[SYN-ACK]---> Victim
+Attacker ---[SYN, src=victim_IP]---> Reflector 2 ---[SYN-ACK]---> Victim
+Attacker ---[SYN, src=victim_IP]---> Reflector N ---[SYN-ACK]---> Victim
+|
+RST flood (side
+effect)
+sudo hping3 -S-p80-c50--spoof<victim_IP><reflector_IP>
+
+Mitigation
+Summary Comparison
+Attack Type Severity Packets 
+Received
+Wireshark Indicator
+SYN Flood DoS High 50/50 (SA) Half-open connections, 
+high SYN count
+RST Attack Disruption Medium–
+High
+0/20 RST flags with no 
+matching session
+Data Flood DoS 
+(Bandwidth)
+High 50/50 Large payload PUSH 
+packets, high RTT
+Session 
+Hijacking
+MitM Critical N/A Out-of-order segments, 
+duplicate ACKs
+FIN-ACK 
+Flood
+DoS Medium 0/50 Unsolicited FIN-ACK with 
+no session
+Reflection 
+Attack
+DDoS Critical Depends SYN-ACK flood from 
+multiple sources
+Conclusion
+All six TCP-based attacks were successfully demonstrated using hping3 and observed in
+Wireshark.
+Key findings:
+Ingress filtering (BCP 38 / RFC 2827) — ISPs block outbound packets with spoofed source
+IPs
+Anti-spoofing ACLs on edge routers
+DDoS mitigation services
+The SYN Flood and Data Flood produced measurable responses from the target server,
+confirming that the server processes and allocates resources for each incoming packet.
+The RST and FIN-ACK floods confirmed that unsolicited packets with no matching session
+state are dropped silently — the server does not waste resources acknowledging them.
+
+Wireshark's TCP stream analysis and sequence number tracking remain effective tools for
+identifying and analyzing these attack patterns in real-time traffic.
+References
+Session Hijacking highlights the critical importance of encryption; without TLS or IPSec,
+TCP sequence numbers are visible to any attacker on the same network.
+The Reflection Attack demonstrates how IP spoofing can be weaponized to turn innocent
+servers into DDoS amplifiers.
+RFC 793 – Transmission Control Protocol
+RFC 4953 – Defending TCP Against Spoofing Attacks
+hping3 Official Documentation
+Wireshark User's Guide
+OWASP – Denial of Service
