@@ -1,0 +1,124 @@
+Experiment 5: Network Topology Creation & Addressing
+Name: Ashvin K S
+Registration Number: 24BCE1580
+Objective: To design a network topology and configure IP addresses based on the ASCII value
+of the first letter of my name ('A' = 65).
+1. Network Structure & Topology
+In this phase, the physical and logical layout of the network was established within Cisco
+Packet Tracer.
+Devices Used: An Internet Cloud, a Cable Modem, a Wireless Router, one PC, and one
+Laptop.
+Physical Connections:
+A Coaxial cable was used to connect the Cable Modem to the Internet Cloud.
+Copper Straight-Through cables were utilized to link the Cable Modem to the Wireless
+Router's Internet port, and to connect the PC and Laptop to the router's Ethernet ports.
+Verification: All link lights turned green, indicating successful physical layer connectivity.
+
+Procedure for Network Topology Creation
+Step 1: Launch Cisco Packet Tracer and Create New Workspace
+Open Cisco Packet Tracer and create a new workspace to begin building the network topology.
+Step 2: Add Network Devices
+Add the following devices to the workspace from their respective panels:
+Step 3: Position Devices
+Arrange devices in a logical layout: Internet Cloud → Cable Modem → Wireless Router, with
+PC and Laptop positioned below the router.
+Step 4: Establish Physical Connections
+Connect devices using appropriate cables:
+One PC and one Laptop from End Devices
+One Wireless Router from Network Devices
+One Cable Modem from WAN Emulation
+One Internet Cloud from Clouds
+Coaxial cable between Internet Cloud and Cable Modem
+Copper Straight-Through cable between Cable Modem and Wireless Router's Internet port
+
+Step 5: Verify Connectivity
+Confirm all link lights turn green, indicating successful physical layer connectivity.
+Step 6: Save Topology
+Save the completed topology as 24BCE1580_Classful.pka for classful configuration and
+24BCE1580_Classless.pka for classless configuration.
+2. Classful IP Configuration
+The addressing for this stage follows standard Class A rules using the first octet derived from
+my name.
+Procedure for Classful IP Configuration
+Step 1: Determine First Octet
+Identify the ASCII value of the first letter of the name ('A' = 65) to use as the first octet for all IP
+addresses.
+Copper Straight-Through cables from PC and Laptop to Wireless Router's LAN ports
+Addressing Logic: Since my name starts with 'A', the first octet is set to 65.
+Subnet Mask: A default mask of 255.0.0.0 was used.
+Device Settings:
+PC: IP 65.45.34.25, Gateway 65.45.34.1.
+Laptop: IP 65.45.34.26, Gateway 65.45.34.1.
+
+Step 2: Configure Wireless Router
+Set the router's IP address to 65.45.34.1 with subnet mask 255.0.0.0 to serve as the
+network gateway.
+Step 3: Configure PC
+Assign IP address 65.45.34.25 with subnet mask 255.0.0.0 and default gateway
+65.45.34.1.
+Step 4: Configure Laptop
+Assign IP address 65.45.34.26 with subnet mask 255.0.0.0 and default gateway
+65.45.34.1.
+Step 5: Verify Configurations
+Use ipconfig command on both PC and Laptop to confirm IP addresses, subnet masks, and
+gateway settings are correct.
+Step 6: Test Connectivity
+Perform ping tests between PC and Laptop, and from each device to the gateway to verify
+network connectivity.
+Step 7: Document Configuration
+Record all IP addressing details and save the configuration as 24BCE1580_Classful.pka.
+3. Classless IP Configuration
+To demonstrate classless addressing (CIDR/Subnetting), the subnet mask was modified while
+maintaining the same IP range.
+Addressing Logic: The first octet remains 65.
+Subnet Mask: The mask was manually changed to 255.255.255.0 to simulate a /24 subnet.
+Device Settings:
+PC: IP 65.45.34.25, Mask 255.255.255.0, Gateway 65.45.34.1.
+Laptop: IP 65.45.34.26, Mask 255.255.255.0, Gateway 65.45.34.1.
+
+Procedure for Classless IP Configuration
+Step 1: Understand CIDR
+Recognize that classless addressing allows flexible subnet mask allocation, enabling more
+efficient IP address utilization compared to classful addressing.
+Step 2: Modify Subnet Mask
+Change the subnet mask from 255.0.0.0 to 255.255.255.0 (/24) on all devices while
+keeping the same IP addresses.
+Step 3: Reconfigure Router
+Update the router's subnet mask to 255.255.255.0 while maintaining IP address 65.45.34.1.
+Step 4: Reconfigure PC
+Update the PC's subnet mask to 255.255.255.0 while maintaining IP address 65.45.34.25
+and gateway 65.45.34.1.
+Step 5: Reconfigure Laptop
+Update the Laptop's subnet mask to 255.255.255.0 while maintaining IP address
+65.45.34.26 and gateway 65.45.34.1.
+Step 6: Verify New Configurations
+Use ipconfig to confirm the updated subnet masks on all devices.
+
+Step 7: Test Connectivity
+Perform ping tests to ensure connectivity is maintained with the new subnet mask configuration.
+Step 8: Compare Configurations
+Observe how the /24 subnet creates a smaller, more manageable network compared to the /8
+classful configuration.
+Step 9: Document Configuration
+Record the classless addressing details and save as 24BCE1580_Classless.pka.
+Conclusion
+The experiment successfully demonstrated the ability to build a functional network topology and
+apply specific IP addressing schemes. Connectivity was verified across both classful and
+classless configurations by ensuring proper gateway settings and link status.
+Verification Procedure
+Step 1: Final Connectivity Check
+Execute ping tests from PC to Laptop and from both devices to the gateway to confirm
+successful network communication.
+Step 2: Verify Configuration Consistency
+Ensure all devices have correct IP addresses, consistent subnet masks, and proper gateway
+settings.
+Step 3: Document Results
+Record successful ping tests, note any issues encountered, and save final screenshots of the
+network topology and configurations.
+Step 4: Key Learnings
+Cisco Certificate
+Network topology creation involves proper device placement and cabling
+Classful addressing uses fixed subnet masks based on IP address classes
+Classless addressing (CIDR) provides flexible subnet mask allocation
+Both addressing schemes can coexist with proper configuration
+The ASCII value of the first letter of a name can be used to derive network addresses
