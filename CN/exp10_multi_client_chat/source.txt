@@ -1,0 +1,196 @@
+Network Simulation Lab Report
+Submitted By: Ashvin K S
+Registration Number: 24BCE1580
+Experiment 2: Multi Client Chatting - TCP and UDP
+Communication in ns-3
+Objective: Perform Multi Client Chatting with UDP protocol. Implement server-side calculations
+(timestamp and packet size), return unified responses to the clients, and perform network
+performance measurements using FlowMonitor.
+Network Topology:
+1. Source Code ( multi-client-chat.cc)
+Node 0: Server
+Node 1: Client A (Subnet 10.1.1.0)
+Node 2: Client B (Subnet 10.2.1.0)
+#include"ns3/core-module.h"
+#include"ns3/network-module.h"
+#include"ns3/internet-module.h"
+#include"ns3/point-to-point-module.h"
+#include"ns3/applications-module.h"
+#include"ns3/flow-monitor-module.h"
+#include<iostream>
+#include<vector>
+#include<string>
+#include<sstream>
+usingnamespace ns3;
+NS_LOG_COMPONENT_DEFINE("CombinedMultiChatApp");
+classChatServerApp:publicApplication{
+public:
+ChatServerApp():m_udpSocket(0),m_tcpSocket(0),m_udpPort(9000),
+m_tcpPort(9001){}
+private:
+virtualvoidStartApplication(void){
+
+// Setup UDP
+m_udpSocket =Socket::CreateSocket(GetNode(),
+UdpSocketFactory::GetTypeId());
+m_udpSocket->Bind(InetSocketAddress(Ipv4Address::GetAny(),
+m_udpPort));
+m_udpSocket->SetRecvCallback(MakeCallback
+(&ChatServerApp::HandleReadUdp,this));
+// Setup TCP
+m_tcpSocket =Socket::CreateSocket(GetNode(),
+TcpSocketFactory::GetTypeId());
+m_tcpSocket->Bind(InetSocketAddress(Ipv4Address::GetAny(),
+m_tcpPort));
+m_tcpSocket->Listen();
+m_tcpSocket->SetAcceptCallback(
+MakeCallback(&ChatServerApp::HandleRequestTcp,this),
+MakeCallback(&ChatServerApp::HandleAcceptTcp,this)
+);
+}
+boolHandleRequestTcp(Ptr<Socket> socket,const Address& from){
+returntrue;
+}
+voidHandleAcceptTcp(Ptr<Socket> socket,const Address& from){
+socket->SetRecvCallback(MakeCallback(&ChatServerApp::HandleReadTcp,
+this));
+// FIX: Store the accepted connection so it doesn't get deleted
+m_tcpAcceptedSockets.push_back(socket);
+}
+voidProcessAndReply(Ptr<Socket> socket, Ptr<Packet> packet, Address
+from, std::string protocol){
+if(packet->GetSize()==0)return;
+uint32_t size = packet->GetSize();
+double timestamp =Simulator::Now().GetSeconds();
+if(protocol =="TCP"){
+socket->GetPeerName(from);
+}
+std::stringstream msg;
+msg <<"ACK | Recv at: "<< timestamp <<"s | Size: "<< size <<"
+bytes";
+std::string responseString = msg.str();
+
+std::cout <<"Server ["<< protocol <<" Processing]: Message from "
+<<InetSocketAddress::ConvertFrom(from).GetIpv4()<<
+std::endl;
+Ptr<Packet> responsePkt =Create<Packet>
+((uint8_t*)responseString.c_str(), responseString.length());
+if(protocol =="UDP"){
+socket->SendTo(responsePkt,0, from);
+}else{
+socket->Send(responsePkt);
+}
+}
+voidHandleReadUdp(Ptr<Socket> socket){
+Ptr<Packet> packet; Address from;
+while((packet = socket->RecvFrom(from))){ProcessAndReply(socket,
+packet, from,"UDP");}
+}
+voidHandleReadTcp(Ptr<Socket> socket){
+Ptr<Packet> packet; Address from;
+while((packet = socket->RecvFrom(from))){ProcessAndReply(socket,
+packet, from,"TCP");}
+}
+Ptr<Socket> m_udpSocket;
+Ptr<Socket> m_tcpSocket;
+std::vector<Ptr<Socket>> m_tcpAcceptedSockets;// Keeps TCP sockets alive
+uint16_t m_udpPort;
+uint16_t m_tcpPort;
+};
+classChatClientApp:publicApplication{
+public:
+ChatClientApp():m_socket(0){}
+voidSetup(Address address, Time interval, std::string clientName, TypeId
+tid){
+m_peer = address; m_interval = interval; m_name = clientName; m_tid =
+tid;
+}
+private:
+virtualvoidStartApplication(void){
+m_socket =Socket::CreateSocket(GetNode(), m_tid);
+m_socket->Connect(m_peer);
+m_socket->SetRecvCallback(MakeCallback
+
+(&ChatClientApp::HandleResponse,this));
+Simulator::Schedule(Seconds(0.1),&ChatClientApp::SendChat,this);
+}
+voidSendChat(){
+std::string msg ="Hello from "+ m_name;
+Ptr<Packet> p =Create<Packet>((uint8_t*)msg.c_str(), msg.length
+());
+m_socket->Send(p);
+Simulator::Schedule(m_interval,&ChatClientApp::SendChat,this);
+}
+voidHandleResponse(Ptr<Socket> socket){
+Ptr<Packet> packet; Address from;
+while((packet = socket->RecvFrom(from))){
+if(packet->GetSize()==0)continue;
+std::vector<uint8_t>buf(packet->GetSize());
+packet->CopyData(buf.data(), packet->GetSize());
+std::string data = std::string((char*)buf.data(), packet->GetSize
+());
+std::cout <<"["<< m_name <<"] Recv -> "<< data << std::endl;
+}
+}
+Ptr<Socket> m_socket; Address m_peer; Time m_interval; std::string m_name;
+TypeId m_tid;
+};
+intmain(int argc,char*argv[]){
+NodeContainer nodes; nodes.Create(3);
+PointToPointHelper p2p;
+p2p.SetDeviceAttribute("DataRate",StringValue("5Mbps"));
+p2p.SetChannelAttribute("Delay",StringValue("2ms"));
+NetDeviceContainer d10 = p2p.Install(nodes.Get(1), nodes.Get(0));
+NetDeviceContainer d20 = p2p.Install(nodes.Get(2), nodes.Get(0));
+InternetStackHelper stack; stack.Install(nodes);
+Ipv4AddressHelper address;
+address.SetBase("10.1.1.0","255.255.255.0");
+Ipv4InterfaceContainer i10 = address.Assign(d10);
+address.SetBase("10.2.1.0","255.255.255.0");
+Ipv4InterfaceContainer i20 = address.Assign(d20);
+
+Ptr<ChatServerApp> server =CreateObject<ChatServerApp>();
+nodes.Get(0)->AddApplication(server);
+Ptr<ChatClientApp> clientA_UDP =CreateObject<ChatClientApp>();
+clientA_UDP->Setup(InetSocketAddress(i10.GetAddress(1),9000),Seconds
+(3.0),"CLIENT_A_UDP",UdpSocketFactory::GetTypeId());
+nodes.Get(1)->AddApplication(clientA_UDP);
+Ptr<ChatClientApp> clientB_UDP =CreateObject<ChatClientApp>();
+clientB_UDP->Setup(InetSocketAddress(i20.GetAddress(1),9000),Seconds
+(5.0),"CLIENT_B_UDP",UdpSocketFactory::GetTypeId());
+nodes.Get(2)->AddApplication(clientB_UDP);
+Ptr<ChatClientApp> clientA_TCP =CreateObject<ChatClientApp>();
+clientA_TCP->Setup(InetSocketAddress(i10.GetAddress(1),9001),Seconds
+(4.0),"CLIENT_A_TCP",TcpSocketFactory::GetTypeId());
+nodes.Get(1)->AddApplication(clientA_TCP);
+FlowMonitorHelper flowmon;
+Ptr<FlowMonitor> monitor = flowmon.InstallAll();
+std::cout <<"--- Starting Combined Simulation ---"<< std::endl;
+Simulator::Stop(Seconds(15.0));
+Simulator::Run();
+monitor->CheckForLostPackets();
+Ptr<Ipv4FlowClassifier> classifier =DynamicCast<Ipv4FlowClassifier>
+(flowmon.GetClassifier());
+std::map<FlowId, FlowMonitor::FlowStats> stats = monitor->GetFlowStats();
+std::cout <<"\n--- Network Performance Measurements ---"<< std::endl;
+for(std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i =
+stats.begin(); i != stats.end();++i){
+Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow(i->first);
+std::cout <<"Flow "<< i->first <<" ("<< t.sourceAddress <<":"<<
+t.sourcePort <<" -> "
+<< t.destinationAddress <<":"<< t.destinationPort <<
+")\n";
+std::cout <<"  Tx Pkts: "<< i->second.txPackets <<" | Rx Pkts: "<<
+i->second.rxPackets 
+<<" | Lost: "<< i->second.lostPackets <<"\n";
+}
+Simulator::Destroy();
+std::cout <<"--- Simulation Finished ---"<< std::endl;
+
+2. Execution Output
+Command Executed: ./ns3 run scratch/multi-client-chat
+Terminal Output:
+Booster Submission
+GitHub Repository Link: https://github.com/Ashvin-KS/College/tree/main/CN
+return0;
+}
